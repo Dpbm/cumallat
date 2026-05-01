@@ -134,6 +134,24 @@ namespace DTWT{
     
     }
 
+    void TestFilterBiggerThanSignal(){
+        float s1[2] = {2,1};
+        float h1[4] = {2,3,2,3};
+
+        float* result;
+        result = dtwt_level_n(1, 4, h1, 2, s1);
+        assert(result[0] == 14);
+        assert(result[1] == 8);
+        
+        float s2[4] = {1,2,3,4};
+        float h2[6] = {1,2,3,4,5,6};
+        result = dtwt_level_n(1, 6, h2, 4, s2);
+        assert(result[0] == 47);
+        assert(result[1] == 61);
+        assert(result[2] == -4);
+        assert(result[3] == -2);
+    }
+
 }
 
 }
@@ -144,6 +162,7 @@ int main() {
     Organization::TestOrganizeM();
     DTWT::TestDTWTHaarFilters();
     DTWT::TestWrapAroundFilters();
+    DTWT::TestFilterBiggerThanSignal();
 
     return 0;
 }

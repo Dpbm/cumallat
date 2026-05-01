@@ -147,8 +147,9 @@ float* dtwt_level_n(int n, int filter_size, float* h, int signal_size, float* s)
 /* TODOS
  * 1. organize the resulting data (per level) [X]
  * 2. wraparound                              [X]
- * 3. filters that are bigger than signal
+ * 3. filters that are bigger than signal     [X]
  * 4. odd sized signals
+ * 5. inverse DTWT
  */
 
 #ifdef DEBUG
