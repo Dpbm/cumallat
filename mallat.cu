@@ -9,6 +9,7 @@ int main(){
     for(int i = 0; i < 8; i++)
         std::cout << m[i] << std::endl;
 
+    cudaFreeHost(m);
     return 0;
 }
 

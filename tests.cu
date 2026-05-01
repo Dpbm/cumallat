@@ -73,11 +73,44 @@ namespace DTWT{
         float s[8] = {sqrt_2, sqrt_2,  sqrt_2, sqrt_2,sqrt_2, sqrt_2,  sqrt_2, sqrt_2};
         float h[2] = {0.7071067811865475, 0.7071067811865475};
 
-        float* result = dtwt_level_n(1, 2, h, 8, s);
+        float* result;
+        
+        result = dtwt_level_n(1, 2, h, 8, s);
         assert(result[0]-2 <= 0.1);
         assert(result[1]-2 <= 0.1);
         assert(result[2]-2 <= 0.1);
         assert(result[3]-2 <= 0.1);
+        assert(result[4] == 0);
+        assert(result[5] == 0);
+        assert(result[6] == 0);
+        assert(result[7] == 0);
+        
+        
+        result = dtwt_level_n(2, 2, h, 8, s);
+        assert(result[0]-2.82842712474619 <= 0.1);
+        assert(result[1]-2.82842712474619 <= 0.1);
+        assert(result[2] == 0);
+        assert(result[3] == 0);
+        assert(result[4] == 0);
+        assert(result[5] == 0);
+        assert(result[6] == 0);
+        assert(result[7] == 0);
+        
+        result = dtwt_level_n(3, 2, h, 8, s);
+        assert(result[0]-4 <= 0.1);
+        assert(result[1] == 0);
+        assert(result[2] == 0);
+        assert(result[3] == 0);
+        assert(result[4] == 0);
+        assert(result[5] == 0);
+        assert(result[6] == 0);
+        assert(result[7] == 0);
+        
+        result = dtwt_level_n(4, 2, h, 8, s);
+        assert(result[0]-4 <= 0.1);
+        assert(result[1] == 0);
+        assert(result[2] == 0);
+        assert(result[3] == 0);
         assert(result[4] == 0);
         assert(result[5] == 0);
         assert(result[6] == 0);
