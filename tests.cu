@@ -117,6 +117,23 @@ namespace DTWT{
         assert(result[7] == 0);
     }
 
+    void TestWrapAroundFilters(){
+        float s[8] = {2,1,4,3,5,2,1,0};
+        float h[4] = {2,3,2,3};
+
+        float* result;
+        result = dtwt_level_n(1, 4, h, 8, s);
+        assert(result[0] == 24);
+        assert(result[1] == 33);
+        assert(result[2] == 18);
+        assert(result[3] == 9);
+        assert(result[4] == 10);
+        assert(result[5] == 17);
+        assert(result[6] == 14);
+        assert(result[7] == 7);
+    
+    }
+
 }
 
 }
@@ -126,6 +143,7 @@ int main() {
     TestGenerateG::TestGenerateG(); 
     Organization::TestOrganizeM();
     DTWT::TestDTWTHaarFilters();
+    DTWT::TestWrapAroundFilters();
 
     return 0;
 }

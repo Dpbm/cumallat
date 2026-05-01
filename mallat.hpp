@@ -47,15 +47,17 @@ void generate_g_filter(int filter_size, float* h, float* g){
 
 __global__
 void dtwt(
+    int signal_size,
     float* s, 
     float* h,
     float* g,
     float* m
 ){
     int filter_index = threadIdx.x;
-
     int signal_index_result = blockIdx.x;
-    int signal_index_calc = ((blockIdx.x/2)*2) + threadIdx.x;
+
+    int shift = (blockIdx.x/2)*2;
+    int signal_index_calc = (shift + threadIdx.x) % signal_size;
     
     float filter_value = signal_index_result % 2 == 0 ?
         h[filter_index]: 
@@ -67,7 +69,7 @@ void dtwt(
 __global__ 
 void organize_m(int half, float* m, float* nm){
     int index = get_index();
-    if(index >= half << 1) return;
+    if(index >= half*2) return;
 
     int nm_index = (index/2) + (index % 2 == 1 ? half : 0);
     nm[nm_index] = m[index];
@@ -105,18 +107,18 @@ float* dtwt_level_n(int n, int filter_size, float* h, int signal_size, float* s)
     for(size_t i = 0; i < n; i++){
 
         // TODO: verify if we should stop
-        int level_signal_size = i == 0 ? signal_size : signal_size/(2 << (i-1));
+        int level_signal_size = i == 0 ? signal_size : signal_size/std::pow(2,i);
 
         if(level_signal_size <= 1) break;
         
         if(i == 0){
-            dtwt<<<level_signal_size, filter_size>>>(s_gpu, h_gpu, g_gpu, m_gpu);
+            dtwt<<<level_signal_size, filter_size>>>(level_signal_size, s_gpu, h_gpu, g_gpu, m_gpu);
             cudaDeviceSynchronize();
             CUDA_CHECK(cudaFree(s_gpu));
         }else{
             reset_array(m_gpu, signal_size);
 
-            dtwt<<<level_signal_size, filter_size>>>(m_organized_gpu, h_gpu, g_gpu, m_gpu);
+            dtwt<<<level_signal_size, filter_size>>>(level_signal_size, m_organized_gpu, h_gpu, g_gpu, m_gpu);
             cudaDeviceSynchronize();
         }
         
@@ -144,7 +146,7 @@ float* dtwt_level_n(int n, int filter_size, float* h, int signal_size, float* s)
 
 /* TODOS
  * 1. organize the resulting data (per level) [X]
- * 2. wraparound
+ * 2. wraparound                              [X]
  * 3. filters that are bigger than signal
  * 4. odd sized signals
  */
