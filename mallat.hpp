@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdio>
+#include <cassert>
 #include <cmath>
 #include <cuda_runtime_api.h>
 
@@ -21,6 +22,11 @@ extern "C" {
         } \
     }while(0);
 
+__device__ __forceinline__
+int get_index(){
+    return blockIdx.x * blockDim.x + threadIdx.x;
+}
+
 __host__
 float* copy_vector_to_gpu(int size, float* v){
     float* v_gpu = NULL;
@@ -31,7 +37,9 @@ float* copy_vector_to_gpu(int size, float* v){
 
 __global__
 void generate_g_filter(int filter_size, float* h, float* g){
-    int index = blockIdx.x * blockDim.x + threadIdx.x;
+    int index = get_index();
+    if(index >= filter_size) return;
+
     int inverse_index = filter_size - 1 - index;
     g[inverse_index] = h[index] * (inverse_index % 2 == 1 ? -1 : 1);
 }
@@ -56,8 +64,19 @@ void dtwt(
     atomicAdd(&m[signal_index_result], filter_value * s[signal_index_calc]);
 }
 
+__global__ 
+void organize_m(int half, float* m, float* nm){
+    int index = get_index();
+    if(index >= half << 1) return;
+
+    int nm_index = (index/2) + (index % 2 == 1 ? half : 0);
+    nm[nm_index] = m[index];
+}
+
 __host__ 
 float* dtwt_level_n(int n, int filter_size, float* h, int signal_size, float* s){
+    assert(signal_size % 2 == 0); // TODO: REMOVE LATER
+
     float* h_gpu = copy_vector_to_gpu(filter_size, h); 
 
     float* g_gpu = NULL;
@@ -76,22 +95,37 @@ float* dtwt_level_n(int n, int filter_size, float* h, int signal_size, float* s)
     dtwt<<<signal_size, filter_size>>>(s_gpu, filter_size, h_gpu, g_gpu, m_gpu);
     cudaDeviceSynchronize();
 
+    float* m_organized_gpu = NULL;
+    CUDA_CHECK(cudaMalloc((void**)&m_organized_gpu, signal_size*sizeof(float)));
+    
+    dim3 blocks_organize(signal_size < MAX_THREADS_PER_BLOCK ? 1 : std::ceil(signal_size/MAX_THREADS_PER_BLOCK));
+    dim3 threads_organize(signal_size < MAX_THREADS_PER_BLOCK ? signal_size : MAX_THREADS_PER_BLOCK);
+    organize_m<<<blocks_organize, threads_organize>>>(signal_size/2, m_gpu, m_organized_gpu);
+    cudaDeviceSynchronize();
+
     CUDA_CHECK(cudaFree(h_gpu));
     CUDA_CHECK(cudaFree(g_gpu));
     CUDA_CHECK(cudaFree(s_gpu));
+    CUDA_CHECK(cudaFree(m_gpu));
 
     float* m = (float*)malloc(signal_size*sizeof(float));
     if(m == NULL){
         std::printf("Failed on allocate memory for processed signal\n");
         std::abort();
     }
-    CUDA_CHECK(cudaMemcpy(m, m_gpu, signal_size*sizeof(float), cudaMemcpyDeviceToHost));
-    CUDA_CHECK(cudaFree(m_gpu));
+    CUDA_CHECK(cudaMemcpy(m, m_organized_gpu, signal_size*sizeof(float), cudaMemcpyDeviceToHost));
+    CUDA_CHECK(cudaFree(m_organized_gpu));
 
     return m;
 }
 
 
+/* TODOS
+ * 1. organize the resulting data (per level)
+ * 2. wraparound
+ * 3. filters that are bigger than signal
+ * 4. odd sized signals
+ */
 
 #ifdef DEBUG
 }
