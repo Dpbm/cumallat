@@ -66,6 +66,28 @@ void dtwt(
     atomicAdd(&m[signal_index_result], filter_value * s[signal_index_calc]);
 }
 
+__global__
+void inverse_dtwt(
+    int signal_size,
+    float* s, 
+    float* h,
+    float* g,
+    float* m
+){
+    int filter_index = blockIdx.x;
+    int signal_index_result = blockIdx.y;
+
+    int shift = (blockIdx.y/2)*2;
+    int signal_index_calc = (shift + blockIdx.x) % signal_size;
+    
+    float filter_value = blockIdx.y % 2 == 0 ?
+        h[filter_index]: 
+        g[filter_index];
+        
+    atomicAdd(&m[signal_index_result], filter_value * s[signal_index_calc]);
+}
+
+
 __global__ 
 void organize_m(int half, float* m, float* nm){
     int index = get_index();
@@ -73,6 +95,16 @@ void organize_m(int half, float* m, float* nm){
 
     int nm_index = (index/2) + (index % 2 == 1 ? half : 0);
     nm[nm_index] = m[index];
+}
+
+__global__ 
+void get_correct_sequence(int half, float* m, float* nm){
+    nm[blockIdx.x] = blockIdx.x % 2 == 0 ? m[(int)(blockIdx.x/2)] : m[(int)(blockIdx.x/2) + half];
+}
+
+__global__ 
+void concat_to_previous(float* d, float* m){
+    d[blockIdx.x] = m[blockIdx.x];
 }
 
 __host__ 
@@ -90,7 +122,8 @@ void reset_array(float* arr, int size){
 
 __host__ 
 float* dtwt_level_n(int n, int filter_size, float* h, int signal_size, float* s){
-    assert(signal_size % 2 == 0); // TODO: REMOVE LATER
+    assert(signal_size % 2 == 0); // NO ODD SIZED MATRICES
+    assert(n > 0);
 
     float* h_gpu = copy_vector_to_gpu(filter_size, h); 
     float* g_gpu = init_gpu_array(filter_size);
@@ -105,8 +138,6 @@ float* dtwt_level_n(int n, int filter_size, float* h, int signal_size, float* s)
     float* m_organized_gpu = init_gpu_array(signal_size);
 
     for(size_t i = 0; i < n; i++){
-
-        // TODO: verify if we should stop
         int level_signal_size = i == 0 ? signal_size : signal_size/std::pow(2,i);
 
         if(level_signal_size <= 1) break;
@@ -143,14 +174,63 @@ float* dtwt_level_n(int n, int filter_size, float* h, int signal_size, float* s)
     return m;
 }
 
+__host__ 
+float* inverse_dtwt_level_n(int n, int filter_size, float* h, int dtwt_size, float* d){
+    assert(dtwt_size % 2 == 0); // NO ODD SIZED MATRICES
+    assert(n >= 0);
 
-/* TODOS
- * 1. organize the resulting data (per level) [X]
- * 2. wraparound                              [X]
- * 3. filters that are bigger than signal     [X]
- * 4. odd sized signals
- * 5. inverse DTWT
- */
+    float* h_gpu = copy_vector_to_gpu(filter_size, h); 
+    float* g_gpu = init_gpu_array(filter_size);
+
+    dim3 blocks_filter(filter_size < MAX_THREADS_PER_BLOCK ? 1 : std::ceil(filter_size/MAX_THREADS_PER_BLOCK));
+    dim3 threads_filter(filter_size < MAX_THREADS_PER_BLOCK ? filter_size : MAX_THREADS_PER_BLOCK);
+    generate_g_filter<<<blocks_filter, threads_filter>>>(filter_size, h_gpu, g_gpu);
+    cudaDeviceSynchronize();
+
+    float* d_gpu = copy_vector_to_gpu(dtwt_size, d);
+    int current_level = std::log2(dtwt_size); 
+
+
+    for(size_t i = current_level; i > n; i--){
+        if(i <= 0) break;
+
+        int level_signal_size = dtwt_size/std::pow(2,i);
+        int complete_signal = 2*level_signal_size;
+
+        float* m_gpu = init_gpu_array(complete_signal);
+        float* seq = init_gpu_array(complete_signal);
+        
+        dim3 seq_blocks(complete_signal);
+        dim3 seq_threads(1);
+        get_correct_sequence<<<seq_blocks, seq_threads>>>(level_signal_size, d_gpu, seq);
+        cudaDeviceSynchronize();
+
+        dim3 idtwt_blocks(filter_size,complete_signal);
+        dim3 idtwt_threads(1);
+        inverse_dtwt<<<idtwt_blocks, idtwt_threads>>>(complete_signal, seq, h_gpu, g_gpu, m_gpu);
+        cudaDeviceSynchronize();
+        
+        concat_to_previous<<<complete_signal, 1>>>(d_gpu, m_gpu);
+        cudaDeviceSynchronize();
+
+        CUDA_CHECK(cudaFree(m_gpu));
+        CUDA_CHECK(cudaFree(seq));
+    }
+
+    CUDA_CHECK(cudaFree(h_gpu));
+    CUDA_CHECK(cudaFree(g_gpu));
+
+    float* m = (float*)malloc(dtwt_size*sizeof(float));
+    if(m == NULL){
+        std::printf("Failed on allocate memory for original signal\n");
+        std::abort();
+    }
+    CUDA_CHECK(cudaMemcpy(m, d_gpu, dtwt_size*sizeof(float), cudaMemcpyDeviceToHost));
+    CUDA_CHECK(cudaFree(d_gpu));
+
+    return m;
+}
+
 
 #ifdef DEBUG
 }

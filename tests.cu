@@ -152,6 +152,26 @@ namespace DTWT{
         assert(result[3] == -2);
     }
 
+
+    void TestInverse(){
+        float d[4] = {27,-1,0,2};
+        float h[4] = {1,2};
+
+        float* result;
+
+        result = inverse_dtwt_level_n(1, 2, h, 4, d);
+        assert(result[0] == 25);
+        assert(result[1] == 55);
+        assert(result[2] == 0);
+        assert(result[3] == 2);
+        
+        result = inverse_dtwt_level_n(0, 2, h, 4, d);
+        assert(result[0] == 25);
+        assert(result[1] == 50);
+        assert(result[2] == 59);
+        assert(result[3] == 108);
+    }
+
 }
 
 }
@@ -163,6 +183,7 @@ int main() {
     DTWT::TestDTWTHaarFilters();
     DTWT::TestWrapAroundFilters();
     DTWT::TestFilterBiggerThanSignal();
+    DTWT::TestInverse();
 
     return 0;
 }
