@@ -1,6 +1,6 @@
 TARGET=./build/mallat
 TARGET_TESTS=./build/mallat_tests
-SOURCE=mallat.cu
+SOURCE=example.cu
 TEST=tests.cu
 
 all: $(TARGET)

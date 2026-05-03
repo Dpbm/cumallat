@@ -21,4 +21,4 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 endif()
 
 add_executable(mallat)
-target_sources(mallat PRIVATE mallat.cu)
+target_sources(mallat PRIVATE example.cu)
