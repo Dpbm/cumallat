@@ -18,3 +18,10 @@ There's a sample code at: [example.cu](./example.cu) which you can run a simple 
   <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/>
 </a>
 
+
+Finally, There're two commands you can run to build this project:
+
+```bash
+make //for building the 'production' code
+make debug //for debugging and run tests
+```
