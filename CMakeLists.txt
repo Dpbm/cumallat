@@ -1,13 +1,5 @@
 cmake_minimum_required(VERSION 3.31)
 
-if(NOT DEFINED ENV{ARCH})
-    message("[i] Using default SM_61")
-    set(CMAKE_CUDA_ARCHITECTURES 61)
-else()
-    message("[i] Using default $ENV{ARCH}")
-    set(CMAKE_CUDA_ARCHITECTURES ENV{ARCH})
-endif()
-
 project(MallatsAlgo LANGUAGES CXX CUDA)
 
 add_compile_options(-Wno-deprecated-gpu-targets)
