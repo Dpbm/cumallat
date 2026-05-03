@@ -74,13 +74,15 @@ void inverse_dtwt(
     float* g,
     float* m
 ){
+    // we transpose DTWT
     int filter_index = blockIdx.x;
-    int signal_index_result = blockIdx.y;
 
-    int shift = (blockIdx.y/2)*2;
-    int signal_index_calc = (shift + blockIdx.x) % signal_size;
+    int shift = (threadIdx.x/2)*2;
+    int signal_index_result = (shift + blockIdx.x) % signal_size;
     
-    float filter_value = blockIdx.y % 2 == 0 ?
+    int signal_index_calc = threadIdx.x;
+    
+    float filter_value = signal_index_calc % 2 == 0 ?
         h[filter_index]: 
         g[filter_index];
         
@@ -205,9 +207,7 @@ float* inverse_dtwt_level_n(int n, int filter_size, float* h, int dtwt_size, flo
         get_correct_sequence<<<seq_blocks, seq_threads>>>(level_signal_size, d_gpu, seq);
         cudaDeviceSynchronize();
 
-        dim3 idtwt_blocks(filter_size,complete_signal);
-        dim3 idtwt_threads(1);
-        inverse_dtwt<<<idtwt_blocks, idtwt_threads>>>(complete_signal, seq, h_gpu, g_gpu, m_gpu);
+        inverse_dtwt<<<filter_size,complete_signal>>>(complete_signal, seq, h_gpu, g_gpu, m_gpu);
         cudaDeviceSynchronize();
         
         concat_to_previous<<<complete_signal, 1>>>(d_gpu, m_gpu);

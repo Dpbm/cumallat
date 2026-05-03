@@ -155,7 +155,7 @@ namespace DTWT{
 
     void TestInverse(){
         float d[4] = {27,-1,0,2};
-        float h[4] = {1,2};
+        float h[2] = {1,2};
 
         float* result;
 
@@ -170,20 +170,55 @@ namespace DTWT{
         assert(result[1] == 50);
         assert(result[2] == 59);
         assert(result[3] == 108);
+
     }
 
+    void TestInverseWrapAround(){
+        float d1[8] = {4472,1144,76,188,0,4,8,1};
+        float h1[4] = {1,2,3,4};
+        float* result;
+        result = inverse_dtwt_level_n(2, 4, h1, 8, d1);
+        assert(result[0] == 24752);
+        assert(result[1] == 22256);
+        assert(result[2] == 76);
+        assert(result[3] == 188);
+        assert(result[4] == 0);
+        assert(result[5] == 4);
+        assert(result[6] == 8);
+        assert(result[7] == 1);
+        
+        result = inverse_dtwt_level_n(1, 4, h1, 8, d1);
+        assert(result[0] == 92200);
+        assert(result[1] == 138112);
+        assert(result[2] == 97416);
+        assert(result[3] == 142880);
+        assert(result[4] == 0);
+        assert(result[5] == 4);
+        assert(result[6] == 8);
+        assert(result[7] == 1);
+        
+        result = inverse_dtwt_level_n(0, 4, h1, 8, d1);
+        assert(result[0] == 520842);
+        assert(result[1] == 755919);
+        assert(result[2] == 414728);
+        assert(result[3] == 645012);
+        assert(result[4] == 511792);
+        assert(result[5] == 747252);
+        assert(result[6] == 435148);
+        assert(result[7] == 675413);
+    }
 }
 
 }
 
 int main() {
-   
     TestGenerateG::TestGenerateG(); 
     Organization::TestOrganizeM();
     DTWT::TestDTWTHaarFilters();
     DTWT::TestWrapAroundFilters();
     DTWT::TestFilterBiggerThanSignal();
     DTWT::TestInverse();
+    DTWT::TestInverseWrapAround();
 
     return 0;
 }
