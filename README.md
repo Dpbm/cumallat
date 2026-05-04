@@ -12,7 +12,7 @@ The processing functions themselves are stored at: [mallat.hpp](./mallat.hpp), w
 
 The Code is able to calculate the DTWT and its inverse. Accepting only even sized filters and signals, I'm not sure if there're odd sized ones in the wild, but since these are the ones we used during our classes, I decided to limit my code this way. On the other hand, as far as I tested, the code is also able to handle wrap around and scenarios which the filter is larger than the signal.
 
-There's a sample code at: [example.cu](./example.cu) which you can run a simple scenario with Haar Filters to understand it better. For those who doesn't have a CUDA device, I let a small jupyter notebook which you can run on google colab laveraging the T4 GPU freely available. Make sure to create a session with GPU.
+There's a sample code at: [example.cu](./example.cu) which you can run a simple scenario with Haar Filters to understand it better. For those who doesn't have a CUDA device, I let a small jupyter notebook which you can run on google colab leveraging the T4 GPU freely available. Make sure to create a session with GPU.
 
 <a target="_blank" href="https://colab.research.google.com/github/https://colab.research.google.com/github/Dpbm/cumallat/blob/main/colab.ipynb">
   <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/>
